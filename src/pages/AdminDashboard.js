@@ -11,7 +11,7 @@ function AdminDashboard() {
     // Fetch users from the backend
     const fetchUsers = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/auth/users', {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/users`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -34,7 +34,7 @@ function AdminDashboard() {
   const handleAddUser = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/auth/add-user', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/add-user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ function AdminDashboard() {
 
   const handleDeleteUser = async (id) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/auth/delete-user/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/delete-user/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
