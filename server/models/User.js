@@ -29,13 +29,13 @@ async function listUsers() {
   return result.rows;
 }
 
-async function setRequestedRole(authUserId, requestedRole) {
+async function setUserRole(authUserId, role) {
   const result = await pool.query(
     `UPDATE app_users
-     SET requested_role = $2
-     WHERE auth_user_id = $1 AND role = 'user'
+     SET role = $2, requested_role = $2
+     WHERE auth_user_id = $1
      RETURNING auth_user_id AS id, username, email, role, requested_role, is_active`,
-    [authUserId, requestedRole]
+    [authUserId, role]
   );
   return result.rows[0] || null;
 }
@@ -143,7 +143,7 @@ async function promoteAdmin(email, username) {
 module.exports = {
   syncAuthUser,
   listUsers,
-  setRequestedRole,
+  setUserRole,
   updateRole,
   setUserActive,
   promoteAdmin,

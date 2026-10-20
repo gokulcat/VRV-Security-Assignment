@@ -19,7 +19,6 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/register" replace />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/admin-login" element={<Login adminOnly />} />
           <Route path="/register" element={<Register />} />
           <Route
             path="/admin-dashboard"

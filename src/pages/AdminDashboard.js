@@ -121,7 +121,7 @@ function AdminDashboard() {
             Registered users
           </h2>
           <p className="mb-4 text-gray-600">
-            Users create their own Neon Auth accounts. Admin enrollment requests stay pending until approved here.
+            Admins can change account roles. User accounts have read-only dashboard access.
           </p>
           {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
           {notice && <p role="status" className="mb-4 text-green-700">{notice}</p>}
@@ -137,9 +137,7 @@ function AdminDashboard() {
                     <th scope="col" className="border-b px-4 py-3">Username</th>
                     <th scope="col" className="border-b px-4 py-3">Email</th>
                     <th scope="col" className="border-b px-4 py-3">Role</th>
-                    <th scope="col" className="border-b px-4 py-3">Role request</th>
                     <th scope="col" className="border-b px-4 py-3">Access</th>
-                    <th scope="col" className="border-b px-4 py-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -172,65 +170,7 @@ function AdminDashboard() {
                           </select>
                         </td>
                         <td className="border-b px-4 py-3">
-                          {item.requested_role === "admin" && item.role !== "admin" ? (
-                            <div className="flex flex-wrap gap-2">
-                              <span className="w-full text-amber-700">Admin approval pending</span>
-                              <button
-                                type="button"
-                                disabled={!item.is_active}
-                                onClick={() =>
-                                  updateUser(
-                                    item.id,
-                                    "role",
-                                    { role: "admin" },
-                                    `Approved ${item.username} as an administrator.`
-                                  )
-                                }
-                                className="rounded bg-green-600 px-3 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateUser(
-                                    item.id,
-                                    "role",
-                                    { role: "user" },
-                                    `Declined ${item.username}'s administrator request.`
-                                  )
-                                }
-                                className="rounded bg-gray-600 px-3 py-2 text-white hover:bg-gray-700"
-                              >
-                                Decline
-                              </button>
-                            </div>
-                          ) : item.role === "admin" ? (
-                            "Approved"
-                          ) : (
-                            "None"
-                          )}
-                        </td>
-                        <td className="border-b px-4 py-3">
                           {item.is_active ? "Active" : "Disabled"}
-                        </td>
-                        <td className="border-b px-4 py-3">
-                          <button
-                            type="button"
-                            disabled={isCurrentUser}
-                            onClick={() =>
-                              updateUser(
-                                item.id,
-                                "active",
-                                { isActive: !item.is_active },
-                                `${item.username}'s access was ${item.is_active ? "disabled" : "enabled"}.`
-                              )
-                            }
-                            aria-label={`${item.is_active ? "Disable" : "Enable"} ${item.username}`}
-                            className="rounded bg-amber-600 px-3 py-2 text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {item.is_active ? "Disable" : "Enable"}
-                          </button>
                         </td>
                       </tr>
                     );

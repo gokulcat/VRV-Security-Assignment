@@ -6,23 +6,21 @@ const User = require("../models/User");
 
 router.get("/me", authenticate, getCurrentUser);
 
-router.patch("/me/role-request", authenticate, async (req, res) => {
-  const { requestedRole } = req.body;
-  if (!["admin", "user"].includes(requestedRole)) {
-    return res.status(400).json({ message: "A valid requested role is required" });
+router.patch("/me/role", authenticate, async (req, res) => {
+  const { role } = req.body;
+  if (!["admin", "user"].includes(role)) {
+    return res.status(400).json({ message: "A valid role is required" });
   }
 
   try {
-    const user = await User.setRequestedRole(req.user.id, requestedRole);
+    const user = await User.setUserRole(req.user.id, role);
     if (!user) {
-      return res.status(409).json({
-        message: "Administrator access cannot be requested for an existing administrator",
-      });
+      return res.status(404).json({ message: "User profile not found" });
     }
     res.status(200).json({ user });
   } catch (error) {
-    console.error("Failed to save role request:", error);
-    res.status(500).json({ message: "Failed to save role request" });
+    console.error("Failed to update own role:", error);
+    res.status(500).json({ message: "Failed to update account role" });
   }
 });
 

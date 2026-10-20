@@ -65,28 +65,21 @@ identity, credentials, and sessions; the app database stores the user's display
 name, email, role, and access status. Existing accounts from the former MongoDB
 database are not copied; users must register again with Neon Auth.
 
-## First administrator
+## Registration and roles
 
-1. Register the intended first administrator and sign in once so the API
-   creates its application profile. Select **Admin (requires approval)**; use
-   the seed command below to bootstrap the first admin account.
-2. Set `ADMIN_EMAIL` in `.env.local` to that account's email. The default
-   `ADMIN_USERNAME` is `Gokul`.
-3. Promote that profile:
+Registration lets each applicant choose **User** or **Admin**. The selected
+role is saved to the application profile, and the single login page routes
+admins to the management dashboard and users to their read-only dashboard.
+Admins can change roles in the registered-users table; the Actions column is
+not used.
 
-   ```sh
-   npm run seed:admin
-   ```
+**Security warning:** registration is public and selected Admin roles take
+effect immediately. Anyone can register as an administrator and view/manage
+registered application profiles. Use this only for a trusted/private demo.
+For a public production app, disable public Admin registration and use an
+administrator-controlled promotion flow.
 
 No password is stored or managed by this app. Neon Auth handles credentials.
-The seed command fails if there is no matching profile yet.
-
-Registration lets applicants choose User or request Admin access. Admin
-requests are saved to the app profile, but the account remains a user until an
-existing administrator approves it from the dashboard. The login page's
-**Admin login** option uses the same Neon Auth credentials as regular login and
-only opens the admin dashboard for an account with the approved administrator
-role.
 
 ## API
 
@@ -96,7 +89,7 @@ Neon Auth bearer token.
 | Method | Path | Access |
 | --- | --- | --- |
 | `GET` | `/me` | Authenticated user |
-| `PATCH` | `/me/role-request` | Authenticated user |
+| `PATCH` | `/me/role` | Authenticated user |
 | `GET` | `/users` | Administrator |
 | `PATCH` | `/users/:id/role` | Administrator |
 | `PATCH` | `/users/:id/active` | Administrator |

@@ -9,7 +9,7 @@ function Register() {
     username: "",
     email: "",
     password: "",
-    requestedRole: "user",
+    role: "user",
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -40,13 +40,13 @@ function Register() {
 
       const sessionResult = await getAuthClient().getSession();
       if (sessionResult.data?.user) {
-        const roleRequest = await apiRequest("/api/auth/me/role-request", {
+        const roleResult = await apiRequest("/api/auth/me/role", {
           method: "PATCH",
-          body: JSON.stringify({ requestedRole: formData.requestedRole }),
+          body: JSON.stringify({ role: formData.role }),
         });
-        login(roleRequest.user);
+        login(roleResult.user);
         navigate(
-          roleRequest.user.role === "admin"
+          roleResult.user.role === "admin"
             ? "/admin-dashboard"
             : "/user-dashboard",
           { replace: true }
@@ -54,12 +54,12 @@ function Register() {
         return;
       }
 
-      if (formData.requestedRole === "admin") {
+      if (formData.role === "admin") {
         window.localStorage.setItem(
-          "pendingRoleRequest",
+          "pendingSignupRole",
           JSON.stringify({
             email: formData.email.trim().toLowerCase(),
-            requestedRole: "admin",
+            role: formData.role,
           })
         );
       }
@@ -166,19 +166,14 @@ function Register() {
               </label>
               <select
                 id="register-role"
-                name="requestedRole"
-                value={formData.requestedRole}
+                name="role"
+                value={formData.role}
                 onChange={handleChange}
                 className="w-full rounded border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="user">User</option>
-                <option value="admin">Admin (requires approval)</option>
+                <option value="admin">Admin</option>
               </select>
-              {formData.requestedRole === "admin" && (
-                <p className="mt-1 text-left text-sm text-gray-600">
-                  Your account will remain a user until an administrator approves the request.
-                </p>
-              )}
             </div>
             <div>
               <button

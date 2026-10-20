@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../services/api";
 import { getAuthClient } from "../services/neonAuth";
 
-function Login({ adminOnly = false }) {
+function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -22,35 +22,27 @@ function Login({ adminOnly = false }) {
         throw new Error(signInResult.error.message || "Login failed");
       }
 
-      const profileResult = await apiRequest("/api/auth/me");
-      const pendingRequest = window.localStorage.getItem("pendingRoleRequest");
-      if (pendingRequest) {
-        let parsedRequest;
+      let profileResult = await apiRequest("/api/auth/me");
+      const pendingSignupRole = window.localStorage.getItem("pendingSignupRole");
+      if (pendingSignupRole) {
+        let parsedSignup;
         try {
-          parsedRequest = JSON.parse(pendingRequest);
+          parsedSignup = JSON.parse(pendingSignupRole);
         } catch {
-          window.localStorage.removeItem("pendingRoleRequest");
+          window.localStorage.removeItem("pendingSignupRole");
         }
         if (
-          parsedRequest?.requestedRole === "admin" &&
-          typeof parsedRequest.email === "string" &&
-          parsedRequest.email.toLowerCase() === profileResult.user.email.toLowerCase()
+          ["admin", "user"].includes(parsedSignup?.role) &&
+          typeof parsedSignup.email === "string" &&
+          parsedSignup.email.toLowerCase() === profileResult.user.email.toLowerCase()
         ) {
-          const requestResult = await apiRequest("/api/auth/me/role-request", {
+          const roleResult = await apiRequest("/api/auth/me/role", {
             method: "PATCH",
-            body: JSON.stringify({ requestedRole: "admin" }),
+            body: JSON.stringify({ role: parsedSignup.role }),
           });
-          profileResult.user = requestResult.user;
-          window.localStorage.removeItem("pendingRoleRequest");
+          profileResult = { user: roleResult.user };
+          window.localStorage.removeItem("pendingSignupRole");
         }
-      }
-      if (adminOnly && profileResult.user.role !== "admin") {
-        setError(
-          profileResult.user.requested_role === "admin"
-            ? "Your administrator access request is waiting for approval."
-            : "This account does not have administrator access."
-        );
-        return;
       }
       login(profileResult.user);
       navigate(
@@ -106,9 +98,7 @@ function Login({ adminOnly = false }) {
         onSubmit={handleSubmit}
         className="relative z-10 w-full max-w-md bg-white p-8 rounded-lg shadow-md text-center"
       >
-        <h2 className="text-2xl font-semibold text-gray-700 mb-6">
-          {adminOnly ? "Admin Login" : "Login"}
-        </h2>
+        <h2 className="text-2xl font-semibold text-gray-700 mb-6">Login</h2>
         <label className="sr-only" htmlFor="login-email">Email</label>
         <input
           id="login-email"
@@ -139,26 +129,11 @@ function Login({ adminOnly = false }) {
           {submitting ? "Signing in..." : "Login"}
         </button>
         <h3 className="mt-4 text-gray-600">
-          {adminOnly ? (
-            <Link to="/login" className="text-blue-500 hover:underline">
-              Regular user login
-            </Link>
-          ) : (
-            <>
-              New Registration?{" "}
-              <Link to="/register" className="text-blue-500 hover:underline">
-                Register
-              </Link>
-            </>
-          )}
+          New Registration?{" "}
+          <Link to="/register" className="text-blue-500 hover:underline">
+            Register
+          </Link>
         </h3>
-        {!adminOnly && (
-          <p className="mt-3 text-sm">
-            <Link to="/admin-login" className="text-blue-500 hover:underline">
-              Admin login
-            </Link>
-          </p>
-        )}
         {error && <p role="alert" className="text-red-500 text-sm mt-4">{error}</p>}
       </form>
     </div>

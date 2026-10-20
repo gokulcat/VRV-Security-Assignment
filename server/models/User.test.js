@@ -62,13 +62,13 @@ test("syncAuthUser supplies a valid display name when the identity name is too s
   }
 });
 
-test("setRequestedRole records a pending role without granting it", async () => {
+test("setUserRole immediately assigns the selected role", async () => {
   const originalQuery = pool.query;
   const profile = {
     id: "auth-user-3",
     username: "Gokul",
     email: "gokul@example.com",
-    role: "user",
+    role: "admin",
     requested_role: "admin",
     is_active: true,
   };
@@ -82,11 +82,10 @@ test("setRequestedRole records a pending role without granting it", async () => 
   };
 
   try {
-    assert.equal(await User.setRequestedRole("auth-user-3", "admin"), profile);
-    assert.match(queryText, /SET requested_role = \$2/);
-    assert.match(queryText, /AND role = 'user'/);
+    assert.equal(await User.setUserRole("auth-user-3", "admin"), profile);
+    assert.match(queryText, /SET role = \$2, requested_role = \$2/);
     assert.deepEqual(queryValues, ["auth-user-3", "admin"]);
-    assert.equal(profile.role, "user");
+    assert.equal(profile.role, "admin");
   } finally {
     pool.query = originalQuery;
   }
