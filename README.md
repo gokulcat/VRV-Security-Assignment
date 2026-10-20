@@ -80,6 +80,10 @@ database are not copied; users must register again with Neon Auth.
 No password is stored or managed by this app. Neon Auth handles credentials.
 The seed command fails if there is no matching profile yet.
 
+The login page's **Admin login** option uses the same Neon Auth credentials as
+regular login and checks the profile's administrator role. It does not grant
+admin access; promote the account using the steps above.
+
 ## API
 
 All application API routes are under `/api/auth`. Protected endpoints require a
