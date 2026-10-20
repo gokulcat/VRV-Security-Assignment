@@ -1,16 +1,20 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { getAuthClient } from "../services/neonAuth";
+import { apiRequest } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 function Register() {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     password: "",
-    role: "user", // Default role is 'user'
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -21,24 +25,37 @@ function Register() {
     e.preventDefault();
     setError("");
     setSuccess(false);
+    setSubmitting(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      const signUpResult = await getAuthClient().signUp.email({
+        email: formData.email,
+        password: formData.password,
+        name: formData.username,
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(true);
-        setTimeout(() => navigate("/login"), 1000); // Redirect to login after 1 second
-      } else {
-        setError(data.message || "Registration failed");
+      if (signUpResult.error) {
+        throw new Error(signUpResult.error.message || "Registration failed");
       }
-    } catch {
-      setError("An error occurred. Please try again later.");
+
+      const sessionResult = await getAuthClient().getSession();
+      if (sessionResult.data?.user) {
+        const profileResult = await apiRequest("/api/auth/me");
+        login(profileResult.user);
+        navigate(
+          profileResult.user.role === "admin"
+            ? "/admin-dashboard"
+            : "/user-dashboard",
+          { replace: true }
+        );
+        return;
+      }
+
+      setSuccess(true);
+      setTimeout(() => navigate("/login", { replace: true }), 1500);
+    } catch (requestError) {
+      setError(requestError.message || "Registration failed");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -87,10 +104,13 @@ function Register() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <label className="sr-only" htmlFor="register-username">Username</label>
               <input
+                id="register-username"
                 type="text"
                 name="username"
                 placeholder="Username"
+                autoComplete="username"
                 value={formData.username}
                 onChange={handleChange}
                 required
@@ -98,10 +118,13 @@ function Register() {
               />
             </div>
             <div>
+              <label className="sr-only" htmlFor="register-email">Email</label>
               <input
+                id="register-email"
                 type="email"
                 name="email"
                 placeholder="Email"
+                autoComplete="email"
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -109,10 +132,15 @@ function Register() {
               />
             </div>
             <div>
+              <label className="sr-only" htmlFor="register-password">Password (8 to 72 characters)</label>
               <input
+                id="register-password"
                 type="password"
                 name="password"
-                placeholder="Password"
+                placeholder="Password (8 to 72 characters)"
+                autoComplete="new-password"
+                minLength={8}
+                maxLength={72}
                 value={formData.password}
                 onChange={handleChange}
                 required
@@ -120,35 +148,24 @@ function Register() {
               />
             </div>
             <div>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                required
-                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-            <div>
               <button
                 type="submit"
+                disabled={submitting}
                 className="w-full py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-200"
               >
-                Register
+                {submitting ? "Creating account..." : "Register"}
               </button>
               <h3 className="mt-4 text-gray-600 text-center">
                 Already have an account?{" "}
-                <a
-                  href="/login"
+                <Link
+                  to="/login"
                   className="text-blue-500 hover:underline transition duration-200"
                 >
                   Login
-                </a>
+                </Link>
               </h3>
             </div>
-            {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+            {error && <p role="alert" className="text-red-500 text-sm mt-4">{error}</p>}
           </form>
         )}
       </div>

@@ -1,210 +1,206 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import React, { useCallback, useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { apiRequest, checkNeonFunction } from "../services/api";
 
 function AdminDashboard() {
   const { user, logout } = useAuth();
   const [users, setUsers] = useState([]);
-  const [error, setError] = useState('');
-  const [formData, setFormData] = useState({ username: '', email: '', password: '', role: 'user' });
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [checkingFunction, setCheckingFunction] = useState(false);
+  const [functionStatus, setFunctionStatus] = useState("");
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await apiRequest("/api/auth/users");
+      setUsers(data);
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        await logout();
+      } else {
+        setError(requestError.message || "Failed to fetch users");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [logout]);
 
   useEffect(() => {
-    // Fetch users from the backend
-    const fetchUsers = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/auth/users', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        const data = await response.json();
-        if (response.ok) {
-          setUsers(data);
-        } else {
-          setError(data.message || 'Failed to fetch users');
-        }
-      } catch {
-        setError('An error occurred while fetching users');
-      }
-    };
+    loadUsers();
+  }, [loadUsers]);
 
-    fetchUsers();
-  }, []);
-
-  const handleAddUser = async (e) => {
-    e.preventDefault();
+  const updateUser = async (id, path, body, successMessage) => {
+    setError("");
+    setNotice("");
     try {
-      const response = await fetch('http://localhost:5000/api/auth/add-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(formData),
+      const result = await apiRequest(`/api/auth/users/${encodeURIComponent(id)}/${path}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
       });
-  
-      const data = await response.json();
-      if (response.ok) {
-        console.log('User added successfully:', data); // Debug success
-        setUsers([...users, data.user]);
-        setFormData({ username: '', email: '', password: '', role: 'user' });
+      setUsers((currentUsers) =>
+        currentUsers.map((item) => (item.id === id ? result.user : item))
+      );
+      setNotice(successMessage);
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        await logout();
       } else {
-        console.error('Error response from backend:', data); // Log error response
-        setError(data.message || 'Failed to add user');
+        setError(requestError.message || "Failed to update user");
       }
-    } catch (err) {
-      console.error('Network error:', err); // Log network errors
-      setError('An error occurred while adding the user');
     }
   };
 
-  const handleDeleteUser = async (id) => {
+  const handleFunctionCheck = async () => {
+    setCheckingFunction(true);
+    setError("");
+    setFunctionStatus("");
     try {
-      const response = await fetch(`http://localhost:5000/api/auth/delete-user/${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      if (response.ok) {
-        setUsers(users.filter((u) => u._id !== id)); // Remove the user from the list
-      } else {
-        setError('Failed to delete user');
-      }
-    } catch {
-      setError('An error occurred while deleting the user');
+      const result = await checkNeonFunction();
+      setFunctionStatus(
+        result.ok
+          ? "Neon Function and PostgreSQL connection are healthy."
+          : "Neon Function returned an unhealthy status."
+      );
+    } catch (requestError) {
+      setError(requestError.message || "Neon Function health check failed");
+    } finally {
+      setCheckingFunction(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (logoutError) {
+      setError(logoutError.message || "Could not sign out");
     }
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen bg-black overflow-hidden">
-      {/* Space-like Background with Flying Asteroids */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute bg-gray-700 rounded-full opacity-70 animate-fly-asteroid"
-            style={{
-              width: `${Math.random() * 40 + 20}px`, // Random size for asteroids
-              height: `${Math.random() * 40 + 20}px`, // Random size for asteroids
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              animationDuration: "15s", // Fixed duration for smooth movement
-              animationDelay: `${Math.random() * 1}s`, // Random delay for variation
-            }}
-          ></div>
-        ))}
-        {/* Stars */}
-        {[...Array(100)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute bg-white rounded-full opacity-40"
-            style={{
-              width: `${Math.random() * 2 + 1}px`, // Random size for stars
-              height: `${Math.random() * 2 + 1}px`, // Random size for stars
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-            }}
-          ></div>
-        ))}
-      </div>
-
-      {/* Admin Dashboard Content */}
-      <div className="relative z-10 w-full max-w-3xl bg-white p-6 rounded-lg shadow-md text-center">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Admin Dashboard</h1>
-        <p className="text-gray-600 text-lg mb-6">
-          Welcome, <span className="font-semibold text-gray-900">{user?.username}</span>! <br />
-          You have administrative privileges.
-        </p>
-        <button
-          onClick={logout}
-          className="px-6 py-2 mb-6 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-200"
-        >
-          Logout
-        </button>
-
-        {/* Add User Form */}
-        <h2 className="text-2xl font-semibold text-gray-700 mb-4">Add New User</h2>
-        <form onSubmit={handleAddUser} className="space-y-4">
-          <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            required
-            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            required
-            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            required
-            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <select
-            name="role"
-            value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-            required
-            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-          </select>
+    <main className="min-h-screen bg-slate-950 px-4 py-10">
+      <section className="mx-auto w-full max-w-5xl rounded-lg bg-white p-6 shadow-lg sm:p-8">
+        <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+            <p className="mt-2 text-gray-600">
+              Signed in as <span className="font-semibold">{user?.username}</span>
+            </p>
+          </div>
           <button
-            type="submit"
-            className="w-full py-3 bg-green-500 text-white rounded hover:bg-green-600 transition duration-200"
+            type="button"
+            onClick={handleLogout}
+            className="rounded bg-blue-600 px-5 py-2 text-white hover:bg-blue-700"
           >
-            Add User
+            Logout
           </button>
-        </form>
+        </header>
 
-        {/* User List */}
-        <h2 className="text-2xl font-semibold text-gray-700 mt-8 mb-4">Registered Users</h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-200">
-            <thead>
-              <tr>
-                <th className="px-6 py-3 border-b">Username</th>
-                <th className="px-6 py-3 border-b">Email</th>
-                <th className="px-6 py-3 border-b">Role</th>
-                <th className="px-6 py-3 border-b">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u._id}>
-                  <td className="px-6 py-4 border-b text-gray-800">{u.username}</td>
-                  <td className="px-6 py-4 border-b text-gray-600">{u.email}</td>
-                  <td className="px-6 py-4 border-b text-gray-600">{u.role}</td>
-                  <td className="px-6 py-4 border-b text-gray-600">
-                    <button
-                      onClick={() => handleDeleteUser(u._id)}
-                      className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition duration-200"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+        <section aria-labelledby="neon-status-heading" className="mb-8 rounded border p-4">
+          <h2 id="neon-status-heading" className="text-xl font-semibold text-gray-700">
+            Neon services
+          </h2>
+          <p className="mt-1 text-gray-600">
+            Authentication uses Neon Auth; application roles and user profiles use Neon PostgreSQL.
+          </p>
+          <button
+            type="button"
+            onClick={handleFunctionCheck}
+            disabled={checkingFunction}
+            className="mt-3 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:opacity-60"
+          >
+            {checkingFunction ? "Checking..." : "Check Neon Function"}
+          </button>
+          {functionStatus && <p role="status" className="mt-3 text-green-700">{functionStatus}</p>}
+        </section>
+
+        <section aria-labelledby="user-list-heading">
+          <h2 id="user-list-heading" className="mb-4 text-2xl font-semibold text-gray-700">
+            Registered users
+          </h2>
+          <p className="mb-4 text-gray-600">
+            Users create their own Neon Auth accounts. Manage their application role or access below.
+          </p>
+          {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
+          {notice && <p role="status" className="mb-4 text-green-700">{notice}</p>}
+          {loading ? (
+            <p role="status" className="text-gray-600">Loading users...</p>
+          ) : users.length === 0 ? (
+            <p className="text-gray-600">No users have signed in yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full border border-gray-200 text-left">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="border-b px-4 py-3">Username</th>
+                    <th scope="col" className="border-b px-4 py-3">Email</th>
+                    <th scope="col" className="border-b px-4 py-3">Role</th>
+                    <th scope="col" className="border-b px-4 py-3">Access</th>
+                    <th scope="col" className="border-b px-4 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((item) => {
+                    const isCurrentUser = item.id === user?.id;
+                    return (
+                      <tr key={item.id}>
+                        <td className="border-b px-4 py-3">{item.username}</td>
+                        <td className="border-b px-4 py-3">{item.email}</td>
+                        <td className="border-b px-4 py-3">
+                          <label className="sr-only" htmlFor={`role-${item.id}`}>
+                            Role for {item.username}
+                          </label>
+                          <select
+                            id={`role-${item.id}`}
+                            value={item.role}
+                            disabled={isCurrentUser || !item.is_active}
+                            onChange={(event) =>
+                              updateUser(
+                                item.id,
+                                "role",
+                                { role: event.target.value },
+                                `Updated ${item.username}'s role.`
+                              )
+                            }
+                            className="rounded border border-gray-300 p-2 disabled:opacity-60"
+                          >
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </td>
+                        <td className="border-b px-4 py-3">
+                          {item.is_active ? "Active" : "Disabled"}
+                        </td>
+                        <td className="border-b px-4 py-3">
+                          <button
+                            type="button"
+                            disabled={isCurrentUser}
+                            onClick={() =>
+                              updateUser(
+                                item.id,
+                                "active",
+                                { isActive: !item.is_active },
+                                `${item.username}'s access was ${item.is_active ? "disabled" : "enabled"}.`
+                              )
+                            }
+                            aria-label={`${item.is_active ? "Disable" : "Enable"} ${item.username}`}
+                            className="rounded bg-amber-600 px-3 py-2 text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {item.is_active ? "Disable" : "Enable"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </section>
+    </main>
   );
 }
 

@@ -3,12 +3,21 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 function ProtectedRoute({ children, roles }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
-  if (!user) return <Navigate to="/login" />;
+  if (loading) {
+    return <p role="status" className="p-6 text-center">Restoring your session...</p>;
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
 
   if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/login" />;
+    return (
+      <Navigate
+        to={user.role === 'admin' ? '/admin-dashboard' : '/user-dashboard'}
+        replace
+      />
+    );
   }
 
   return children;

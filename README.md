@@ -1,70 +1,116 @@
-# Getting Started with Create React App
+# Role Manager
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A role-based user management app with a React frontend, Express API, Neon Managed
+Auth, Neon PostgreSQL, and a Neon Function health check.
 
-## Available Scripts
+## Requirements
 
-In the project directory, you can run:
+- Node.js 20 or newer
+- A Neon project with PostgreSQL, Neon Auth, and Neon Functions enabled
 
-### `npm start`
+## Neon setup
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The Neon project is configured in `neon.ts`. From the project root:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```sh
+npm install
+neon login
+```
 
-### `npm test`
+If the Neon CLI is not installed globally, use `npx neon@latest` in place of
+`neon`. The CLI writes private database credentials and service URLs to
+`.env.local`; keep this file out of version control. This project uses
+PostgreSQL, Neon Managed Auth, and Neon Functions. AI Gateway is not configured
+because it is unavailable on the project's current Neon plan.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Before deploying the Function, provide its CORS origin to the CLI process:
 
-### `npm run build`
+```powershell
+$env:CLIENT_ORIGIN = "http://localhost:3000"
+$envFile = (Resolve-Path ".env.local").Path
+neon deploy --env $envFile --yes
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Use the deployed frontend's origin instead of localhost when deploying for
+production. The Function will reject requests from origins not listed here.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Set the Neon Auth allowed origin to `http://localhost:3000` for local development.
+For a deployed frontend, add its origin in Neon Auth and set the public frontend
+build variables in the hosting provider:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- `REACT_APP_NEON_AUTH_BASE_URL` — value of `NEON_AUTH_BASE_URL`
+- `REACT_APP_NEON_FUNCTION_HELLO_BASE_URL` — value of `NEON_FUNCTION_HELLO_BASE_URL`
+- `REACT_APP_API_URL` — API base URL if the API is hosted separately; otherwise
+  leave it empty
 
-### `npm run eject`
+## Run locally
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Install dependencies and run the API and frontend together:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```sh
+npm install
+npm run dev
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+The frontend is available at `http://localhost:3000` and the API at
+`http://localhost:5000`. The React development server proxies `/api` requests to
+the API. `.env.local` must contain the environment variables pulled by Neon;
+`REACT_APP_NEON_AUTH_BASE_URL` and
+`REACT_APP_NEON_FUNCTION_HELLO_BASE_URL` must be set for the frontend. Copy
+the missing non-secret settings from `.env.example` into `.env.local` if needed;
+do not overwrite the values pulled by the Neon CLI.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+The API creates the `app_users` profile/role table on startup. Neon Auth owns
+identity, credentials, and sessions; the app database stores the user's display
+name, email, role, and access status. Existing accounts from the former MongoDB
+database are not copied; users must register again with Neon Auth.
 
-## Learn More
+## First administrator
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. Register the intended admin account in the app and sign in once so the API
+   creates its application profile.
+2. Set `ADMIN_EMAIL` in `.env.local` to that account's email. The default
+   `ADMIN_USERNAME` is `Gokul`.
+3. Promote that profile:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+   ```sh
+   npm run seed:admin
+   ```
 
-### Code Splitting
+No password is stored or managed by this app. Neon Auth handles credentials.
+The seed command fails if there is no matching profile yet.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## API
 
-### Analyzing the Bundle Size
+All application API routes are under `/api/auth`. Protected endpoints require a
+Neon Auth bearer token.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+| Method | Path | Access |
+| --- | --- | --- |
+| `GET` | `/me` | Authenticated user |
+| `GET` | `/users` | Administrator |
+| `PATCH` | `/users/:id/role` | Administrator |
+| `PATCH` | `/users/:id/active` | Administrator |
+| `GET` | `/admin` | Administrator test route |
+| `GET` | `/user` | Authenticated user or administrator |
 
-### Making a Progressive Web App
+Neon identities are managed separately from application profiles. Removing
+access disables the application's profile; it does not delete the Neon Auth
+identity.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+The deployed Neon Function health endpoint requires a valid Neon Auth token,
+checks PostgreSQL connectivity, and is available from the admin dashboard.
 
-### Advanced Configuration
+## Scripts
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- `npm run dev` — run API and React development server together
+- `npm start` — run the API server
+- `npm run client` — run the React development server
+- `npm run build` — build the frontend
+- `npm test` — run frontend tests once
+- `npm run test:server` — run backend authentication and profile tests
+- `npm run seed:admin` — promote the registered `ADMIN_EMAIL` profile
 
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+For production hosting, configure `DATABASE_URL`, `NEON_AUTH_BASE_URL`,
+`NEON_AUTH_JWKS_URL`, `CLIENT_ORIGIN`, and the frontend build variables in the
+hosting provider. Do not expose `DATABASE_URL` to the browser.

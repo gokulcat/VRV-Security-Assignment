@@ -1,33 +1,39 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { apiRequest } from "../services/api";
+import { getAuthClient } from "../services/neonAuth";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setSubmitting(true);
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        login(data.user, data.token);
-        navigate(
-          data.user.role === "admin" ? "/admin-dashboard" : "/user-dashboard"
-        );
-      } else {
-        setError(data.message);
+      const signInResult = await getAuthClient().signIn.email({ email, password });
+      if (signInResult.error) {
+        throw new Error(signInResult.error.message || "Login failed");
       }
-    } catch {
-      setError("Login failed");
+
+      const profileResult = await apiRequest("/api/auth/me");
+      login(profileResult.user);
+      navigate(
+        profileResult.user.role === "admin"
+          ? "/admin-dashboard"
+          : "/user-dashboard",
+        { replace: true }
+      );
+    } catch (requestError) {
+      setError(requestError.message || "Login failed");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -72,17 +78,23 @@ function Login() {
         className="relative z-10 w-full max-w-md bg-white p-8 rounded-lg shadow-md text-center"
       >
         <h2 className="text-2xl font-semibold text-gray-700 mb-6">Login</h2>
+        <label className="sr-only" htmlFor="login-email">Email</label>
         <input
+          id="login-email"
           type="email"
           placeholder="Email"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full p-3 mb-4 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         />
+        <label className="sr-only" htmlFor="login-password">Password</label>
         <input
+          id="login-password"
           type="password"
           placeholder="Password"
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full p-3 mb-4 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -90,17 +102,18 @@ function Login() {
         />
         <button
           type="submit"
+          disabled={submitting}
           className="w-full py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-200"
         >
-          Login
+          {submitting ? "Signing in..." : "Login"}
         </button>
         <h3 className="mt-4 text-gray-600">
           New Registration?{" "}
-          <a href="/register" className="text-blue-500 hover:underline">
+          <Link to="/register" className="text-blue-500 hover:underline">
             Register
-          </a>
+          </Link>
         </h3>
-        {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+        {error && <p role="alert" className="text-red-500 text-sm mt-4">{error}</p>}
       </form>
     </div>
   );
