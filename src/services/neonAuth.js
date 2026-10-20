@@ -25,17 +25,18 @@ export async function getNeonAuthToken() {
     return result.data.token;
   }
 
-  let sessionToken;
+  let responseToken;
   const sessionResult = await authClient.getSession({
     fetchOptions: {
       onSuccess: ({ response }) => {
-        sessionToken = response.headers.get("set-auth-jwt") || undefined;
+        responseToken = response.headers.get("set-auth-jwt") || undefined;
       },
     },
   });
   if (sessionResult.error) {
     throw new Error(sessionResult.error.message || "Could not retrieve your authentication session");
   }
+  const sessionToken = sessionResult.data?.session?.token || responseToken;
   if (!sessionResult.data?.session || !sessionResult.data.user || !sessionToken) {
     throw new Error("Could not retrieve an API authentication token. Please sign in again.");
   }
