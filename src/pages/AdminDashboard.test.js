@@ -9,7 +9,6 @@ jest.mock("../context/AuthContext", () => ({
 
 jest.mock("../services/api", () => ({
   apiRequest: jest.fn(),
-  checkNeonFunction: jest.fn(),
 }));
 
 const registeredUsers = [

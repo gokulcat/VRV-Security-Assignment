@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { apiRequest, checkNeonFunction } from "../services/api";
+import { apiRequest } from "../services/api";
 
 function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -9,8 +9,6 @@ function AdminDashboard() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
-  const [checkingFunction, setCheckingFunction] = useState(false);
-  const [functionStatus, setFunctionStatus] = useState("");
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -54,24 +52,6 @@ function AdminDashboard() {
     }
   };
 
-  const handleFunctionCheck = async () => {
-    setCheckingFunction(true);
-    setError("");
-    setFunctionStatus("");
-    try {
-      const result = await checkNeonFunction();
-      setFunctionStatus(
-        result.ok
-          ? "Neon Function and PostgreSQL connection are healthy."
-          : "Neon Function returned an unhealthy status."
-      );
-    } catch (requestError) {
-      setError(requestError.message || "Neon Function health check failed");
-    } finally {
-      setCheckingFunction(false);
-    }
-  };
-
   const handleLogout = async () => {
     try {
       await logout();
@@ -98,24 +78,6 @@ function AdminDashboard() {
             Logout
           </button>
         </header>
-
-        <section aria-labelledby="neon-status-heading" className="mb-8 rounded border p-4">
-          <h2 id="neon-status-heading" className="text-xl font-semibold text-gray-700">
-            Neon services
-          </h2>
-          <p className="mt-1 text-gray-600">
-            Authentication uses Neon Auth; application roles and user profiles use Neon PostgreSQL.
-          </p>
-          <button
-            type="button"
-            onClick={handleFunctionCheck}
-            disabled={checkingFunction}
-            className="mt-3 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:opacity-60"
-          >
-            {checkingFunction ? "Checking..." : "Check Neon Function"}
-          </button>
-          {functionStatus && <p role="status" className="mt-3 text-green-700">{functionStatus}</p>}
-        </section>
 
         <section aria-labelledby="user-list-heading">
           <h2 id="user-list-heading" className="mb-4 text-2xl font-semibold text-gray-700">
