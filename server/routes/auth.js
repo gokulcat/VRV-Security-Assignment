@@ -15,7 +15,7 @@ router.patch("/me/role", authenticate, async (req, res) => {
   try {
     const user = await User.setUserRole(req.user.id, role);
     if (!user) {
-      return res.status(404).json({ message: "User profile not found" });
+      return res.status(409).json({ message: "Role selection is already complete" });
     }
     res.status(200).json({ user });
   } catch (error) {
@@ -32,7 +32,7 @@ router.get("/user", authenticate, authorize(["user", "admin"]), (req, res) => {
   res.json({ message: "Welcome User" });
 });
 
-router.get("/users", authenticate, authorize(["admin"]), async (req, res) => {
+router.get("/users", authenticate, async (req, res) => {
   try {
     const users = await User.listUsers();
     res.status(200).json(users);

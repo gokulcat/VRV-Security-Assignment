@@ -62,7 +62,7 @@ test("syncAuthUser supplies a valid display name when the identity name is too s
   }
 });
 
-test("setUserRole immediately assigns the selected role", async () => {
+test("setUserRole assigns the initial role only once", async () => {
   const originalQuery = pool.query;
   const profile = {
     id: "auth-user-3",
@@ -83,7 +83,8 @@ test("setUserRole immediately assigns the selected role", async () => {
 
   try {
     assert.equal(await User.setUserRole("auth-user-3", "admin"), profile);
-    assert.match(queryText, /SET role = \$2, requested_role = \$2/);
+    assert.match(queryText, /SET role = \$2, requested_role = \$2, role_initialized = TRUE/);
+    assert.match(queryText, /AND role_initialized = FALSE/);
     assert.deepEqual(queryValues, ["auth-user-3", "admin"]);
     assert.equal(profile.role, "admin");
   } finally {

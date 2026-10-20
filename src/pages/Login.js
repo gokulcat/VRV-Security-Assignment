@@ -45,12 +45,7 @@ function Login() {
         }
       }
       login(profileResult.user);
-      navigate(
-        profileResult.user.role === "admin"
-          ? "/admin-dashboard"
-          : "/user-dashboard",
-        { replace: true }
-      );
+      navigate("/dashboard", { replace: true });
     } catch (requestError) {
       setError(requestError.message || "Login failed");
     } finally {

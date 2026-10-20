@@ -67,11 +67,11 @@ database are not copied; users must register again with Neon Auth.
 
 ## Registration and roles
 
-Registration lets each applicant choose **User** or **Admin**. The selected
-role is saved to the application profile, and the single login page routes
-admins to the management dashboard and users to their read-only dashboard.
-Admins can change roles in the registered-users table; the Actions column is
-not used.
+Registration lets each applicant choose **User** or **Admin**. Both roles use
+the same dashboard and can view the registered-users list. Only admins can
+change roles; user accounts have read-only access. The list includes usernames,
+email addresses, roles, and access status, so this information is visible to
+every authenticated account. The Actions column is not used.
 
 **Security warning:** registration is public and selected Admin roles take
 effect immediately. Anyone can register as an administrator and view/manage
@@ -89,8 +89,8 @@ Neon Auth bearer token.
 | Method | Path | Access |
 | --- | --- | --- |
 | `GET` | `/me` | Authenticated user |
-| `PATCH` | `/me/role` | Authenticated user |
-| `GET` | `/users` | Administrator |
+| `PATCH` | `/me/role` | Authenticated user, once during registration |
+| `GET` | `/users` | Authenticated user |
 | `PATCH` | `/users/:id/role` | Administrator |
 | `PATCH` | `/users/:id/active` | Administrator |
 | `GET` | `/admin` | Administrator test route |

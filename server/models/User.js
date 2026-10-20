@@ -10,8 +10,8 @@ async function syncAuthUser({ authUserId, email, username }) {
       ? emailUsername
       : "User";
   const result = await pool.query(
-    `INSERT INTO app_users (auth_user_id, username, email)
-     VALUES ($1, $2, $3)
+    `INSERT INTO app_users (auth_user_id, username, email, role_initialized)
+     VALUES ($1, $2, $3, FALSE)
      ON CONFLICT (auth_user_id)
      DO UPDATE SET username = EXCLUDED.username, email = EXCLUDED.email
      RETURNING auth_user_id AS id, username, email, role, requested_role, is_active`,
@@ -32,8 +32,8 @@ async function listUsers() {
 async function setUserRole(authUserId, role) {
   const result = await pool.query(
     `UPDATE app_users
-     SET role = $2, requested_role = $2
-     WHERE auth_user_id = $1
+     SET role = $2, requested_role = $2, role_initialized = TRUE
+     WHERE auth_user_id = $1 AND role_initialized = FALSE
      RETURNING auth_user_id AS id, username, email, role, requested_role, is_active`,
     [authUserId, role]
   );
@@ -69,7 +69,7 @@ async function updateRole(authUserId, role) {
     }
 
     const updated = await client.query(
-      `UPDATE app_users SET role = $2, requested_role = $2
+      `UPDATE app_users SET role = $2, requested_role = $2, role_initialized = TRUE
        WHERE auth_user_id = $1
        RETURNING auth_user_id AS id, username, email, role, requested_role, is_active`,
       [authUserId, role]
@@ -131,7 +131,7 @@ async function setUserActive(authUserId, isActive) {
 async function promoteAdmin(email, username) {
   const result = await pool.query(
     `UPDATE app_users
-     SET role = 'admin', requested_role = 'admin',
+     SET role = 'admin', requested_role = 'admin', role_initialized = TRUE,
          username = COALESCE(NULLIF($2, ''), username)
      WHERE email = $1
      RETURNING auth_user_id, username, email`,

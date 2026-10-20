@@ -45,24 +45,17 @@ function Register() {
           body: JSON.stringify({ role: formData.role }),
         });
         login(roleResult.user);
-        navigate(
-          roleResult.user.role === "admin"
-            ? "/admin-dashboard"
-            : "/user-dashboard",
-          { replace: true }
-        );
+        navigate("/dashboard", { replace: true });
         return;
       }
 
-      if (formData.role === "admin") {
-        window.localStorage.setItem(
-          "pendingSignupRole",
-          JSON.stringify({
-            email: formData.email.trim().toLowerCase(),
-            role: formData.role,
-          })
-        );
-      }
+      window.localStorage.setItem(
+        "pendingSignupRole",
+        JSON.stringify({
+          email: formData.email.trim().toLowerCase(),
+          role: formData.role,
+        })
+      );
       setSuccess(true);
       setTimeout(() => navigate("/login", { replace: true }), 1500);
     } catch (requestError) {

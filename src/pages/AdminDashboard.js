@@ -4,6 +4,7 @@ import { apiRequest, checkNeonFunction } from "../services/api";
 
 function AdminDashboard() {
   const { user, logout } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -84,7 +85,7 @@ function AdminDashboard() {
       <section className="mx-auto w-full max-w-5xl rounded-lg bg-white p-6 shadow-lg sm:p-8">
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
             <p className="mt-2 text-gray-600">
               Signed in as <span className="font-semibold">{user?.username}</span>
             </p>
@@ -121,7 +122,9 @@ function AdminDashboard() {
             Registered users
           </h2>
           <p className="mb-4 text-gray-600">
-            Admins can change account roles. User accounts have read-only dashboard access.
+            {isAdmin
+              ? "You can view registered users and manage their roles."
+              : "You can view registered users. Your access is read-only."}
           </p>
           {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
           {notice && <p role="status" className="mb-4 text-green-700">{notice}</p>}
@@ -148,26 +151,32 @@ function AdminDashboard() {
                         <td className="border-b px-4 py-3">{item.username}</td>
                         <td className="border-b px-4 py-3">{item.email}</td>
                         <td className="border-b px-4 py-3">
-                          <label className="sr-only" htmlFor={`role-${item.id}`}>
-                            Role for {item.username}
-                          </label>
-                          <select
-                            id={`role-${item.id}`}
-                            value={item.role}
-                            disabled={isCurrentUser || !item.is_active}
-                            onChange={(event) =>
-                              updateUser(
-                                item.id,
-                                "role",
-                                { role: event.target.value },
-                                `Updated ${item.username}'s role.`
-                              )
-                            }
-                            className="rounded border border-gray-300 p-2 disabled:opacity-60"
-                          >
-                            <option value="user">User</option>
-                            <option value="admin">Admin</option>
-                          </select>
+                          {isAdmin ? (
+                            <>
+                              <label className="sr-only" htmlFor={`role-${item.id}`}>
+                                Role for {item.username}
+                              </label>
+                              <select
+                                id={`role-${item.id}`}
+                                value={item.role}
+                                disabled={isCurrentUser || !item.is_active}
+                                onChange={(event) =>
+                                  updateUser(
+                                    item.id,
+                                    "role",
+                                    { role: event.target.value },
+                                    `Updated ${item.username}'s role.`
+                                  )
+                                }
+                                className="rounded border border-gray-300 p-2 disabled:opacity-60"
+                              >
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                              </select>
+                            </>
+                          ) : (
+                            item.role
+                          )}
                         </td>
                         <td className="border-b px-4 py-3">
                           {item.is_active ? "Active" : "Disabled"}

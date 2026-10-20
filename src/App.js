@@ -8,7 +8,6 @@ import {
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
-import UserDashboard from './pages/UserDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 
@@ -21,20 +20,20 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
-            path="/admin-dashboard"
+            path="/dashboard"
             element={
-              <ProtectedRoute roles={['admin']}>
+              <ProtectedRoute roles={['user', 'admin']}>
                 <AdminDashboard />
               </ProtectedRoute>
             }
           />
           <Route
+            path="/admin-dashboard"
+            element={<Navigate to="/dashboard" replace />}
+          />
+          <Route
             path="/user-dashboard"
-            element={
-              <ProtectedRoute roles={['user', 'admin']}>
-                <UserDashboard />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/dashboard" replace />}
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

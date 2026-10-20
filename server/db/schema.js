@@ -10,6 +10,7 @@ const schemaSql = `
       CHECK (role IN ('admin', 'user')),
     requested_role VARCHAR(10) NOT NULL DEFAULT 'user'
       CHECK (requested_role IN ('admin', 'user')),
+    role_initialized BOOLEAN NOT NULL DEFAULT TRUE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )
@@ -29,6 +30,10 @@ function ensureSchema() {
         `ALTER TABLE app_users
          ADD COLUMN IF NOT EXISTS requested_role VARCHAR(10) NOT NULL DEFAULT 'user'
          CHECK (requested_role IN ('admin', 'user'))`
+      );
+      await pool.query(
+        `ALTER TABLE app_users
+         ADD COLUMN IF NOT EXISTS role_initialized BOOLEAN NOT NULL DEFAULT TRUE`
       );
     })().catch((error) => {
       schemaReady = null;
