@@ -67,6 +67,7 @@ const authenticate = async (req, res, next) => {
       username: profile.username,
       email: profile.email,
       role: profile.role,
+      requested_role: profile.requested_role,
       is_active: profile.is_active,
     };
     next();

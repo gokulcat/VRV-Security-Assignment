@@ -64,6 +64,7 @@ test("verifies Neon EdDSA JWTs and attaches the database role", async () => {
       username: identity.username,
       email: identity.email,
       role: "admin",
+      requested_role: "admin",
       is_active: true,
     });
 
@@ -81,6 +82,7 @@ test("verifies Neon EdDSA JWTs and attaches the database role", async () => {
       username: "Gokul",
       email: "gokul@example.com",
       role: "admin",
+      requested_role: "admin",
       is_active: true,
     });
 

@@ -67,8 +67,9 @@ database are not copied; users must register again with Neon Auth.
 
 ## First administrator
 
-1. Register the intended admin account in the app and sign in once so the API
-   creates its application profile.
+1. Register the intended first administrator and sign in once so the API
+   creates its application profile. Select **Admin (requires approval)**; use
+   the seed command below to bootstrap the first admin account.
 2. Set `ADMIN_EMAIL` in `.env.local` to that account's email. The default
    `ADMIN_USERNAME` is `Gokul`.
 3. Promote that profile:
@@ -80,9 +81,12 @@ database are not copied; users must register again with Neon Auth.
 No password is stored or managed by this app. Neon Auth handles credentials.
 The seed command fails if there is no matching profile yet.
 
-The login page's **Admin login** option uses the same Neon Auth credentials as
-regular login and checks the profile's administrator role. It does not grant
-admin access; promote the account using the steps above.
+Registration lets applicants choose User or request Admin access. Admin
+requests are saved to the app profile, but the account remains a user until an
+existing administrator approves it from the dashboard. The login page's
+**Admin login** option uses the same Neon Auth credentials as regular login and
+only opens the admin dashboard for an account with the approved administrator
+role.
 
 ## API
 
@@ -92,6 +96,7 @@ Neon Auth bearer token.
 | Method | Path | Access |
 | --- | --- | --- |
 | `GET` | `/me` | Authenticated user |
+| `PATCH` | `/me/role-request` | Authenticated user |
 | `GET` | `/users` | Administrator |
 | `PATCH` | `/users/:id/role` | Administrator |
 | `PATCH` | `/users/:id/active` | Administrator |

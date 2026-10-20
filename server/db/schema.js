@@ -8,6 +8,8 @@ const schemaSql = `
     email VARCHAR(254) NOT NULL UNIQUE,
     role VARCHAR(10) NOT NULL DEFAULT 'user'
       CHECK (role IN ('admin', 'user')),
+    requested_role VARCHAR(10) NOT NULL DEFAULT 'user'
+      CHECK (requested_role IN ('admin', 'user')),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )
@@ -21,7 +23,14 @@ function ensureSchema() {
   }
 
   if (!schemaReady) {
-    schemaReady = pool.query(schemaSql).catch((error) => {
+    schemaReady = (async () => {
+      await pool.query(schemaSql);
+      await pool.query(
+        `ALTER TABLE app_users
+         ADD COLUMN IF NOT EXISTS requested_role VARCHAR(10) NOT NULL DEFAULT 'user'
+         CHECK (requested_role IN ('admin', 'user'))`
+      );
+    })().catch((error) => {
       schemaReady = null;
       throw error;
     });

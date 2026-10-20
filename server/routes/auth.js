@@ -6,6 +6,26 @@ const User = require("../models/User");
 
 router.get("/me", authenticate, getCurrentUser);
 
+router.patch("/me/role-request", authenticate, async (req, res) => {
+  const { requestedRole } = req.body;
+  if (!["admin", "user"].includes(requestedRole)) {
+    return res.status(400).json({ message: "A valid requested role is required" });
+  }
+
+  try {
+    const user = await User.setRequestedRole(req.user.id, requestedRole);
+    if (!user) {
+      return res.status(409).json({
+        message: "Administrator access cannot be requested for an existing administrator",
+      });
+    }
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error("Failed to save role request:", error);
+    res.status(500).json({ message: "Failed to save role request" });
+  }
+});
+
 router.get("/admin", authenticate, authorize(["admin"]), (req, res) => {
   res.json({ message: "Welcome Admin" });
 });

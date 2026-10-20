@@ -23,8 +23,33 @@ function Login({ adminOnly = false }) {
       }
 
       const profileResult = await apiRequest("/api/auth/me");
+      const pendingRequest = window.localStorage.getItem("pendingRoleRequest");
+      if (pendingRequest) {
+        let parsedRequest;
+        try {
+          parsedRequest = JSON.parse(pendingRequest);
+        } catch {
+          window.localStorage.removeItem("pendingRoleRequest");
+        }
+        if (
+          parsedRequest?.requestedRole === "admin" &&
+          typeof parsedRequest.email === "string" &&
+          parsedRequest.email.toLowerCase() === profileResult.user.email.toLowerCase()
+        ) {
+          const requestResult = await apiRequest("/api/auth/me/role-request", {
+            method: "PATCH",
+            body: JSON.stringify({ requestedRole: "admin" }),
+          });
+          profileResult.user = requestResult.user;
+          window.localStorage.removeItem("pendingRoleRequest");
+        }
+      }
       if (adminOnly && profileResult.user.role !== "admin") {
-        setError("This account does not have administrator access.");
+        setError(
+          profileResult.user.requested_role === "admin"
+            ? "Your administrator access request is waiting for approval."
+            : "This account does not have administrator access."
+        );
         return;
       }
       login(profileResult.user);

@@ -44,6 +44,11 @@ function UserDashboard() {
           Welcome, <span className="font-semibold text-gray-900">{user?.username}</span>! <br />
           You can access user-specific content here.
         </p>
+        {user?.requested_role === "admin" && user?.role !== "admin" && (
+          <p role="status" className="mb-4 text-amber-700">
+            Your administrator access request is awaiting approval.
+          </p>
+        )}
         <button
           onClick={logout}
           className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-200"

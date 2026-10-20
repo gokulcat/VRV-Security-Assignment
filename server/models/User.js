@@ -14,7 +14,7 @@ async function syncAuthUser({ authUserId, email, username }) {
      VALUES ($1, $2, $3)
      ON CONFLICT (auth_user_id)
      DO UPDATE SET username = EXCLUDED.username, email = EXCLUDED.email
-     RETURNING auth_user_id AS id, username, email, role, is_active`,
+     RETURNING auth_user_id AS id, username, email, role, requested_role, is_active`,
     [authUserId, normalizedUsername, normalizedEmail]
   );
   return result.rows[0];
@@ -22,11 +22,22 @@ async function syncAuthUser({ authUserId, email, username }) {
 
 async function listUsers() {
   const result = await pool.query(
-    `SELECT auth_user_id AS id, username, email, role, is_active
+    `SELECT auth_user_id AS id, username, email, role, requested_role, is_active
      FROM app_users
      ORDER BY created_at, email`
   );
   return result.rows;
+}
+
+async function setRequestedRole(authUserId, requestedRole) {
+  const result = await pool.query(
+    `UPDATE app_users
+     SET requested_role = $2
+     WHERE auth_user_id = $1 AND role = 'user'
+     RETURNING auth_user_id AS id, username, email, role, requested_role, is_active`,
+    [authUserId, requestedRole]
+  );
+  return result.rows[0] || null;
 }
 
 async function updateRole(authUserId, role) {
@@ -58,9 +69,9 @@ async function updateRole(authUserId, role) {
     }
 
     const updated = await client.query(
-      `UPDATE app_users SET role = $2
+      `UPDATE app_users SET role = $2, requested_role = $2
        WHERE auth_user_id = $1
-       RETURNING auth_user_id AS id, username, email, role, is_active`,
+       RETURNING auth_user_id AS id, username, email, role, requested_role, is_active`,
       [authUserId, role]
     );
     await client.query("COMMIT");
@@ -104,7 +115,7 @@ async function setUserActive(authUserId, isActive) {
     const updated = await client.query(
       `UPDATE app_users SET is_active = $2
        WHERE auth_user_id = $1
-       RETURNING auth_user_id AS id, username, email, role, is_active`,
+       RETURNING auth_user_id AS id, username, email, role, requested_role, is_active`,
       [authUserId, isActive]
     );
     await client.query("COMMIT");
@@ -120,7 +131,8 @@ async function setUserActive(authUserId, isActive) {
 async function promoteAdmin(email, username) {
   const result = await pool.query(
     `UPDATE app_users
-     SET role = 'admin', username = COALESCE(NULLIF($2, ''), username)
+     SET role = 'admin', requested_role = 'admin',
+         username = COALESCE(NULLIF($2, ''), username)
      WHERE email = $1
      RETURNING auth_user_id, username, email`,
     [email.trim().toLowerCase(), username || ""]
@@ -128,4 +140,11 @@ async function promoteAdmin(email, username) {
   return result.rows[0] || null;
 }
 
-module.exports = { syncAuthUser, listUsers, updateRole, setUserActive, promoteAdmin };
+module.exports = {
+  syncAuthUser,
+  listUsers,
+  setRequestedRole,
+  updateRole,
+  setUserActive,
+  promoteAdmin,
+};

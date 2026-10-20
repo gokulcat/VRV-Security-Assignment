@@ -61,3 +61,33 @@ test("syncAuthUser supplies a valid display name when the identity name is too s
     pool.query = originalQuery;
   }
 });
+
+test("setRequestedRole records a pending role without granting it", async () => {
+  const originalQuery = pool.query;
+  const profile = {
+    id: "auth-user-3",
+    username: "Gokul",
+    email: "gokul@example.com",
+    role: "user",
+    requested_role: "admin",
+    is_active: true,
+  };
+  let queryText;
+  let queryValues;
+
+  pool.query = async (text, values) => {
+    queryText = text;
+    queryValues = values;
+    return { rows: [profile] };
+  };
+
+  try {
+    assert.equal(await User.setRequestedRole("auth-user-3", "admin"), profile);
+    assert.match(queryText, /SET requested_role = \$2/);
+    assert.match(queryText, /AND role = 'user'/);
+    assert.deepEqual(queryValues, ["auth-user-3", "admin"]);
+    assert.equal(profile.role, "user");
+  } finally {
+    pool.query = originalQuery;
+  }
+});
